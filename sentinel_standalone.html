@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Sentinel - Standalone AI ETM Console</title>
+  
+  <!-- Google Fonts for premium modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Premium Vanilla CSS Inlined for complete self-contained execution -->
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(17, 24, 39, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      
+      --primary: #6366f1;       /* Indigo */
+      --primary-hover: #4f46e5;
+      --success: #10b981;       /* Emerald */
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --warning: #f59e0b;       /* Amber */
+      --warning-glow: rgba(245, 158, 11, 0.2);
+      --danger: #ef4444;        /* Crimson */
+      --danger-glow: rgba(239, 68, 68, 0.2);
+      --info: #06b6d4;          /* Cyan */
+      --info-glow: rgba(6, 182, 212, 0.2);
+      
+      --font-sans: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(at 10% 20%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+        radial-gradient(at 90% 80%, rgba(6, 182, 212, 0.05) 0px, transparent 50%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header Styling */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-logo h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid var(--primary);
+      color: #a5b4fc;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .system-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.green {
+      background-color: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+
+    .pulse-icon {
+      width: 10px;
+      height: 10px;
+      background-color: var(--primary);
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .pulse-icon::after {
+      content: '';
+      width: 100%;
+      height: 100%;
+      background-color: var(--primary);
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+
+    /* Main Layout Grid */
+    .dashboard-container {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem;
+      flex: 1;
+    }
+
+    /* Card Component Styling */
+    .card {
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card.glass {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .card.glass:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 30px rgba(99, 102, 241, 0.05);
+    }
+
+    .card h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text-main);
+    }
+
+    .section-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .card-divider {
+      border: 0;
+      height: 1px;
+      background: var(--card-border);
+      margin: 1.25rem 0;
+    }
+
+    /* Sidebar Content Styling */
+    .policy-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .policy-label {
+      color: var(--text-muted);
+    }
+
+    .policy-value {
+      font-weight: 600;
+    }
+
+    .policy-value.badge-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid var(--warning);
+      color: #fcd34d;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    .category-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+    }
+
+    .cat-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .cat-dot.red { background-color: var(--danger); }
+    .cat-dot.yellow { background-color: var(--warning); }
+    .cat-dot.green { background-color: var(--success); }
+
+    .developer-notice {
+      background: rgba(99, 102, 241, 0.05) !important;
+      border: 1px dashed rgba(99, 102, 241, 0.3) !important;
+    }
+
+    .developer-notice p {
+      font-size: 0.8rem;
+      line-height: 1.4;
+      color: #a5b4fc;
+    }
+
+    /* Telemetry Asset Cards */
+    .assets-grid-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .assets-grid-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .assets-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .asset-card {
+      padding: 1.25rem;
+      cursor: pointer;
+    }
+
+    .asset-card.active-selection {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+    }
+
+    .asset-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .asset-title h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .asset-title span {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .risk-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .risk-badge.danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+    }
+
+    .risk-badge.warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--warning);
+      color: #fcd34d;
+    }
+
+    .risk-badge.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--success);
+      color: #6ee7b7;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+    }
+
+    .asset-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .asset-details span strong {
+      color: var(--text-main);
+    }
+
+    .asset-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+
+    /* Diagnostic Logs Console */
+    .console-section {
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      background: #070913;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+      margin-top: 1rem;
+      overflow: hidden;
+    }
+
+    .console-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.25rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .console-header h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .badge-console {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+    }
+
+    .console-body {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      padding: 1.25rem;
+      height: 250px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      line-height: 1.5;
+    }
+
+    .log-line {
+      white-space: pre-wrap;
+    }
+
+    .log-line.sys { color: #6b7280; }
+    .log-line.info { color: #60a5fa; }
+    .log-line.warning { color: #fbbf24; }
+    .log-line.danger { color: #f87171; }
+    .log-line.success { color: #34d399; }
+
+    /* Modal (HITL Authorization Box) */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(7, 9, 19, 0.85);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.hidden {
+      display: none !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .modal-container {
+      width: 100%;
+      max-width: 680px;
+      border-radius: 16px;
+      background: rgba(17, 25, 40, 0.75) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+      overflow: hidden;
+      animation: modalZoom 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modalZoom {
+      0% { transform: scale(0.9); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .modal-header h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .btn-close:hover { color: white; }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .modal-body h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .validation-status-card {
+      background: rgba(16, 185, 129, 0.05);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .status-badge-container {
+      margin-bottom: 0.5rem;
+    }
+
+    .status-badge.verified {
+      background: var(--success);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      display: inline-block;
+      box-shadow: 0 0 10px var(--success-glow);
+    }
+
+    .validation-status-card p {
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: #a7f3d0;
+    }
+
+    .evidence-box {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      background: #05070d;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      max-height: 140px;
+      color: #34d399;
+    }
+
+    .blast-radius-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 0.6rem 0.8rem;
+      color: white;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 5px rgba(99, 102, 241, 0.2);
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid var(--card-border);
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    /* Spinner Inline Animation */
+    .spinner-inline {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+      animation: spin 0.8s infinite linear;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .font-highlight { color: #818cf8; font-weight: 600; }
+    .font-success { color: var(--success); font-weight: 600; }
+    .font-warning { color: var(--warning); font-weight: 600; }
+    .font-danger { color: var(--danger); font-weight: 600; }
+    .text-center { text-align: center; }
+  </style>
+</head>
+<body>
+
+  <!-- Premium Glassmorphic Header -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="pulse-icon"></span>
+      <h1>SECURITY SENTINEL</h1>
+      <span class="badge">AI Standalone Simulator</span>
+    </div>
+    <div class="system-status">
+      <span class="status-dot green"></span>
+      <span>SIMULATION ENGINE: ONLINE</span>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="dashboard-container">
+    
+    <!-- Left Sidebar: Policy & Governance -->
+    <aside class="sidebar">
+      <div class="card glass">
+        <h2>🛡️ ETM Governance</h2>
+        <p class="section-desc">Governance policies simulated locally</p>
+        
+        <div class="policy-item">
+          <span class="policy-label">Policy Name:</span>
+          <span class="policy-value font-highlight">Global ETM Agent Autonomy Guardrails</span>
+        </div>
+        <div class="policy-item">
+          <span class="policy-label">Autonomy Level:</span>
+          <span class="policy-value badge-warning">HITL Approval Required</span>
+        </div>
+        <div class="policy-item">
+          <span class="policy-label">Change Window:</span>
+          <span class="policy-value font-success">Authorized (Sat/Sun Window)</span>
+        </div>
+        
+        <hr class="card-divider">
+        
+        <h3>Asset Categories</h3>
+        <div class="category-list">
+          <div class="category-item">
+            <span class="cat-dot red"></span>
+            <span>High Risk: app-server-01</span>
+          </div>
+          <div class="category-item">
+            <span class="cat-dot yellow"></span>
+            <span>Standard: db-host-05</span>
+          </div>
+          <div class="category-item">
+            <span class="cat-dot green"></span>
+            <span>Non-Prod: dev-box-09</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card glass developer-notice">
+        <h3>💡 AppSec Co-Pilot Info</h3>
+        <p>In decentralized organizations, project teams own security. Security Sentinel abstracts tool complexity, running safe validations and low-overhead remediations with zero security knowledge required from you.</p>
+      </div>
+    </aside>
+
+    <!-- Center Content: Assets & Console -->
+    <section class="main-content">
+      
+      <!-- Telemetry Cards Grid -->
+      <div class="assets-grid-header">
+        <h2>🖥️ Digital Infrastructure Telemetry</h2>
+        <button id="btn-refresh" class="btn btn-secondary">🔄 Restart Simulator</button>
+      </div>
+      
+      <div id="assets-container" class="assets-container">
+        <!-- Telemetry Cards injected statefully via JS -->
+      </div>
+
+      <!-- Real-Time AI Agent Console -->
+      <div class="console-section">
+        <div class="console-header">
+          <h3>💬 AI Agent Thought Stream & Tool Outputs</h3>
+          <span class="badge-console">LOGS: STDOUT</span>
+        </div>
+        <div id="console-logs" class="console-body">
+          <!-- Logs will stream here -->
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- HITL Approval Modal (Pre-Flight Blast Radius Assessment) -->
+  <div id="hitl-modal" class="modal-overlay hidden">
+    <div class="modal-container glass">
+      
+      <div class="modal-header">
+        <h2>⚠️ Human-in-the-Loop Approval Required</h2>
+        <button id="btn-close-modal" class="btn-close">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="validation-status-card">
+          <div class="status-badge-container">
+            <span class="status-badge verified">✔️ TruConfirm Exploit Verified</span>
+          </div>
+          <p><strong>TruConfirm</strong> successfully performed a safe execution check and confirmed active exploit path viability. <strong>Vulnerability is active and exploitable on this host.</strong></p>
+        </div>
+
+        <h3>🔍 Cryptographic Exploit Evidence</h3>
+        <pre id="exploit-evidence" class="evidence-box">Loading validation evidence...</pre>
+
+        <h3>📋 Pre-Flight Blast Radius Assessment</h3>
+        <div class="blast-radius-box">
+          <div class="blast-item">
+            <strong>Target Asset:</strong> <span id="modal-asset-id" class="font-highlight">app-server-01</span>
+          </div>
+          <div class="blast-item">
+            <strong>Active Threat:</strong> <span id="modal-cve-id" class="font-warning">CVE-2024-4577</span>
+          </div>
+          <div class="blast-item">
+            <strong>Qualys Agent Footprint:</strong> <span class="font-success">RAM &lt; 5MB, CPU &lt; 0.5%</span> (Zero performance impact to active connections)
+          </div>
+          <div class="blast-item">
+            <strong>SLA Downtime risk:</strong> <span class="font-success">None</span> (Zero-downtime hot-patch applied statefully)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="change-ticket-id"><strong>Change Control Ticket ID (Auditing Required):</strong></label>
+          <input type="text" id="change-ticket-id" value="CC-9942" placeholder="e.g., CC-1002" class="form-control">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-decline" class="btn btn-secondary">Decline & Quarantine</button>
+        <button id="btn-approve" class="btn btn-primary">Authorize Patch Execution</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Interactive Stateful Client-Side Simulation Logic -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Elements
+      const assetsContainer = document.getElementById("assets-container");
+      const consoleLogs = document.getElementById("console-logs");
+      const btnRefresh = document.getElementById("btn-refresh");
+      
+      const hitlModal = document.getElementById("hitl-modal");
+      const modalAssetId = document.getElementById("modal-asset-id");
+      const modalCveId = document.getElementById("modal-cve-id");
+      const exploitEvidence = document.getElementById("exploit-evidence");
+      const changeTicketId = document.getElementById("change-ticket-id");
+      const btnCloseModal = document.getElementById("btn-close-modal");
+      const btnDecline = document.getElementById("btn-decline");
+      const btnApprove = document.getElementById("btn-approve");
+
+      // Stateful Mock Session Database
+      let MOCK_ASSET_REGISTRY = {};
+      let selectedAssetId = "app-server-01";
+      
+      const initializeMockDatabase = () => {
+        MOCK_ASSET_REGISTRY = {
+          "app-server-01": {
+            "asset_name": "app-server-01",
+            "ip_address": "10.120.45.10",
+            "environment": "Production",
+            "trurisk_score": 88,
+            "vulnerabilities": [
+              {
+                "cve_id": "CVE-2024-4577",
+                "severity": "Critical",
+                "cve_score": 9.8,
+                "status": "Active",
+                "validation_proof": "None",
+                "remediation_status": "Pending"
+              },
+              {
+                "cve_id": "CVE-2023-38646",
+                "severity": "High",
+                "cve_score": 8.1,
+                "status": "Active",
+                "validation_proof": "None",
+                "remediation_status": "Pending"
+              }
+            ]
+          },
+          "db-host-05": {
+            "asset_name": "db-host-05",
+            "ip_address": "10.120.45.15",
+            "environment": "Production",
+            "trurisk_score": 92,
+            "vulnerabilities": [
+              {
+                "cve_id": "CVE-2024-3094",
+                "severity": "Critical",
+                "cve_score": 10.0,
+                "status": "Active",
+                "validation_proof": "None",
+                "remediation_status": "Pending"
+              }
+            ]
+          },
+          "dev-box-09": {
+            "asset_name": "dev-box-09",
+            "ip_address": "192.168.12.80",
+            "environment": "Development",
+            "trurisk_score": 45,
+            "vulnerabilities": [
+              {
+                "cve_id": "CVE-2021-44228",
+                "severity": "Critical",
+                "cve_score": 10.0,
+                "status": "Active",
+                "validation_proof": "None",
+                "remediation_status": "Pending"
+              }
+            ]
+          }
+        };
+      };
+
+      // Logging engine
+      const addLog = (message, type = "info") => {
+        const time = new Date().toLocaleTimeString();
+        const line = document.createElement("div");
+        line.className = `log-line ${type}`;
+        line.textContent = `[${time}] ${message}`;
+        consoleLogs.appendChild(line);
+        consoleLogs.scrollTop = consoleLogs.scrollHeight;
+      };
+
+      const clearLogs = () => {
+        consoleLogs.innerHTML = "";
+      };
+
+      // Render Dashboard Cards
+      const renderAssetsGrid = () => {
+        assetsContainer.innerHTML = "";
+        
+        Object.keys(MOCK_ASSET_REGISTRY).forEach(id => {
+          const asset = MOCK_ASSET_REGISTRY[id];
+          const isSelected = id === selectedAssetId;
+          const primaryCve = asset.vulnerabilities[0];
+          
+          let riskClass = "success";
+          if (asset.trurisk_score > 80) riskClass = "danger";
+          else if (asset.trurisk_score > 40) riskClass = "warning";
+
+          const card = document.createElement("div");
+          card.className = `card glass asset-card ${isSelected ? 'active-selection' : ''}`;
+          card.dataset.id = id;
+
+          card.innerHTML = `
+            <div class="asset-header">
+              <div class="asset-title">
+                <h4>${asset.asset_name}</h4>
+                <span>${asset.ip_address}</span>
+              </div>
+              <span class="risk-badge ${riskClass}">TRURISK: ${asset.trurisk_score}</span>
+            </div>
+            <div class="asset-details">
+              <span><strong>Env:</strong> ${asset.environment}</span>
+              <span><strong>Vulnerabilities:</strong> ${asset.vulnerabilities.length} active</span>
+              <span><strong>Primary Threat:</strong> <span class="font-danger">${primaryCve.cve_id}</span></span>
+              <span><strong>CVE Status:</strong> <span class="${getStatusColorClass(primaryCve.status)}">${primaryCve.status}</span></span>
+            </div>
+            <div class="asset-actions">
+              <button class="btn btn-secondary btn-check-telemetry">Check Telemetry</button>
+              ${primaryCve.status === "Remediated"
+                ? `<button class="btn btn-success" disabled>✓ Patched</button>`
+                : `<button class="btn btn-primary btn-validate-exploit">Validate Exploit</button>`
+              }
+            </div>
+          `;
+
+          // Card click selection focus
+          card.addEventListener("click", (e) => {
+            if (e.target.tagName !== "BUTTON") {
+              selectedAssetId = id;
+              document.querySelectorAll(".asset-card").forEach(c => c.classList.remove("active-selection"));
+              card.classList.add("active-selection");
+              addLog(`Focused console telemetry window on asset: ${id}`, "info");
+            }
+          });
+
+          // Telemetry Trigger
+          card.querySelector(".btn-check-telemetry").addEventListener("click", () => {
+            selectedAssetId = id;
+            checkTelemetry(id);
+          });
+
+          // Exploit Checker Trigger
+          const btnValidate = card.querySelector(".btn-validate-exploit");
+          if (btnValidate) {
+            btnValidate.addEventListener("click", () => {
+              selectedAssetId = id;
+              validateExploitSimulated(id, primaryCve.cve_id, card);
+            });
+          }
+
+          assetsContainer.appendChild(card);
+        });
+      };
+
+      const getStatusColorClass = (status) => {
+        switch (status) {
+          case "Active": return "font-danger";
+          case "Validated": return "font-warning";
+          case "Remediated": return "font-success";
+          default: return "font-highlight";
+        }
+      };
+
+      // Action: Ingest & Display Telemetry
+      const checkTelemetry = (assetId) => {
+        addLog(`Ingesting resource logs telemetry://active-session-logs/${assetId}...`, "sys");
+        const asset = MOCK_ASSET_REGISTRY[assetId];
+        if (!asset) return;
+
+        setTimeout(() => {
+          addLog(`[AI Analysis] Host: ${asset.asset_name} is running in ${asset.environment} at IP ${asset.ip_address}.`, "info");
+        }, 150);
+        setTimeout(() => {
+          addLog(`[AI Analysis] Current TruRisk Score is ${asset.trurisk_score}. Discovered CVE vulnerabilities:`, "info");
+        }, 300);
+        setTimeout(() => {
+          asset.vulnerabilities.forEach((v, index) => {
+            setTimeout(() => {
+              addLog(`  -> ${v.cve_id} [Severity: ${v.severity}] -> Status: ${v.status}, Remediation: ${v.remediation_status}`, v.status === "Remediated" ? "success" : "danger");
+            }, index * 100);
+          });
+        }, 450);
+      };
+
+      // Action: Exploit Validation Simulator (TruConfirm tool)
+      const validateExploitSimulated = (assetId, cveId, cardElement) => {
+        const asset = MOCK_ASSET_REGISTRY[assetId];
+        const primaryCve = asset.vulnerabilities[0];
+        
+        addLog(`Initiating TruConfirm exploit validation for ${cveId} on ${assetId}...`, "sys");
+        addLog(`[AI Agent] Connecting via stdio MCP Client. Calling delegate_validation_workflow(asset_id="${assetId}", cve_id="${cveId}")...`, "info");
+        
+        const btn = cardElement.querySelector(".btn-validate-exploit");
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<span class="spinner-inline"></span> Executing Check...`;
+        btn.disabled = true;
+
+        setTimeout(() => {
+          // Stateful status update to validated
+          primaryCve.status = "Validated";
+          const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + " UTC";
+          
+          const simulatedEvidence = 
+            `[TruConfirm Exploit Proof - ${timestamp}]\n` +
+            `Target Host IP: ${asset.ip_address}\n` +
+            `Target Port: 8080 (Service: httpd php-cgi)\n` +
+            `Execution Trigger Payload: ?%2d%64+allow%5furl%5finclude%3d1+%2d%64+auto%5fprepend%5ffile%3dphp://input\n` +
+            `Verification Response: Remote Command Execution (RCE) successfully validated.\n` +
+            `Evidence Output: Received remote pingback response containing internal stack registers.`;
+            
+          primaryCve.validation_proof = simulatedEvidence;
+          
+          addLog(`TruConfirm Completed! Status: EXPLOIT_VERIFIED`, "success");
+          addLog(`[MCP Output] Exploit verification evidence trail:`, "success");
+          
+          simulatedEvidence.split("\n").forEach((line, i) => {
+            setTimeout(() => addLog(`  ${line}`, "success"), i * 50);
+          });
+
+          // Reload cards and pop modal
+          setTimeout(() => {
+            renderAssetsGrid();
+            openHITLModal(assetId, cveId, simulatedEvidence);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+          }, 600);
+
+        }, 1500);
+      };
+
+      // HITL Gating Modals
+      const openHITLModal = (assetId, cveId, evidenceText) => {
+        modalAssetId.textContent = assetId;
+        modalCveId.textContent = cveId;
+        exploitEvidence.textContent = evidenceText;
+        
+        addLog(`[AI Sentinel Gating] Autonomy safety matrix requires manual manager authorization to apply remediation patches. Rendering approval modal.`, "warning");
+        hitlModal.classList.remove("hidden");
+      };
+
+      const closeHITLModal = () => {
+        hitlModal.classList.add("hidden");
+        addLog(`HITL approval modal dismissed.`, "info");
+      };
+
+      // Action: Remediation Execution (TruRisk Eliminate tool)
+      const executeRemediation = () => {
+        const assetId = modalAssetId.textContent;
+        const ticketId = changeTicketId.value.trim() || "CC-9942";
+        const asset = MOCK_ASSET_REGISTRY[assetId];
+        
+        addLog(`[HITL Approved] Authorizing patch remediation. Change Control Ticket ID: ${ticketId}`, "success");
+        addLog(`Calling MCP tool orchestrate_remediation(asset_id="${assetId}", action_type="patch", change_control_id="${ticketId}")...`, "sys");
+        
+        btnApprove.innerHTML = `<span class="spinner-inline"></span> Deploying Patch...`;
+        btnApprove.disabled = true;
+
+        setTimeout(() => {
+          const oldRisk = asset.trurisk_score;
+          const newRisk = Math.max(15, Math.floor(oldRisk * 0.35));
+          asset.trurisk_score = newRisk;
+          
+          asset.vulnerabilities.forEach(v => {
+            v.status = "Remediated";
+            v.remediation_status = "Success";
+          });
+
+          addLog(`[MCP Output] TruRisk Mitigate complete! Status: REMEDIATION_SUCCESSFUL`, "success");
+          addLog(`[Qualys Cloud Agent Footprint] RAM overhead: 4.8 MB, CPU utilization: < 0.5% (Extremely low footprint)`, "info");
+          addLog(`[Risk Reduction Report] TruRisk decreased statefully from ${oldRisk} to ${newRisk} (Risk reduction of ${((1 - (newRisk/oldRisk)) * 100).toFixed(1)}%)`, "success");
+          addLog(`[Audit Log] Change control ticket #${ticketId} statefully verified, closed, and registered in centralized reporting log.`, "success");
+
+          renderAssetsGrid();
+          closeHITLModal();
+          btnApprove.innerHTML = "Authorize Patch Execution";
+          btnApprove.disabled = false;
+        }, 1800);
+      };
+
+      // Refresh / Restart Simulation
+      const runStartupSequence = () => {
+        clearLogs();
+        initializeMockDatabase();
+        renderAssetsGrid();
+        
+        addLog("Security Sentinel Standalone Simulation Engine initialized.", "sys");
+        setTimeout(() => addLog("Booting Agent Val MCP Server (stdio transport)...", "sys"), 150);
+        setTimeout(() => addLog("MCP Connection established. Discovered 3 resources, 2 tools, and 1 prompt.", "success"), 350);
+        setTimeout(() => addLog("[AI] Ready to analyze asset telemetry logs. Select an asset card above to begin ETM triage.", "info"), 500);
+      };
+
+      // Events
+      btnRefresh.addEventListener("click", runStartupSequence);
+      btnCloseModal.addEventListener("click", closeHITLModal);
+      btnDecline.addEventListener("click", closeHITLModal);
+      btnApprove.addEventListener("click", executeRemediation);
+
+      // Start initial
+      runStartupSequence();
+    });
+  </script>
+</body>
+</html>
