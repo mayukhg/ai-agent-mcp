@@ -1,0 +1,48 @@
+{
+  "policy_metadata": {
+    "name": "Global ETM Agent Autonomy Guardrails",
+    "version": "1.2.0",
+    "last_updated": "2026-05-25T13:30:00Z",
+    "governing_body": "Central Security Operations (CISO)"
+  },
+  "safety_levels": {
+    "high_risk_assets": {
+      "requires_manual_approval": true,
+      "allowed_remediation_actions": ["patch", "mitigate_config"],
+      "denied_remediation_actions": ["network_isolate"]
+    },
+    "standard_assets": {
+      "requires_manual_approval": true,
+      "allowed_remediation_actions": ["patch", "mitigate_config", "network_isolate"]
+    },
+    "non_production_assets": {
+      "requires_manual_approval": false,
+      "allowed_remediation_actions": ["patch", "mitigate_config", "network_isolate"]
+    }
+  },
+  "asset_classification": {
+    "app-server-01": "high_risk_assets",
+    "db-host-05": "high_risk_assets",
+    "dev-box-09": "non_production_assets"
+  },
+  "maintenance_windows": {
+    "enabled": true,
+    "description": "Production remediation must fall within authorized change windows",
+    "windows": [
+      {
+        "day_of_week": "Saturday",
+        "start_time_utc": "22:00",
+        "end_time_utc": "06:00"
+      },
+      {
+        "day_of_week": "Sunday",
+        "start_time_utc": "00:00",
+        "end_time_utc": "08:00"
+      }
+    ]
+  },
+  "auto_remediation_policy": {
+    "max_trurisk_score_allowed_for_auto_remediation": 70,
+    "cve_criticality_override": false
+  }
+}
