@@ -118,18 +118,16 @@ class SecuritySentinelHTTPHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         # 1. API Endpoints
         if self.path == "/api/governance":
+            response_content = call_mcp_read_resource("config://governance/autonomy-matrix").encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(response_content)))
+            self.send_header("Connection", "close")
             self.end_headers()
-            response_content = call_mcp_read_resource("config://governance/autonomy-matrix")
-            self.wfile.write(response_content.encode("utf-8"))
+            self.wfile.write(response_content)
             return
             
         elif self.path == "/api/telemetry":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            
             # Fetch all default ETM assets telemetry logs and merge them
             assets = ["app-server-01", "db-host-05", "dev-box-09"]
             merged_telemetry = {}
@@ -140,7 +138,13 @@ class SecuritySentinelHTTPHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     logger.error(f"Error fetching telemetry for {asset_id}: {e}")
                     
-            self.wfile.write(json.dumps(merged_telemetry, indent=2).encode("utf-8"))
+            response_content = json.dumps(merged_telemetry, indent=2).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(response_content)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(response_content)
             return
 
         # 2. Static Asset Routing
@@ -179,6 +183,7 @@ class SecuritySentinelHTTPHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", mime_type)
             self.send_header("Content-Length", str(len(content)))
+            self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(content)
         except Exception as e:
@@ -208,13 +213,14 @@ class SecuritySentinelHTTPHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b"Missing asset_id or cve_id parameters")
                 return
                 
+            # Execute TruConfirm exploit validation tool
+            result = call_mcp_tool("delegate_validation_workflow", {"asset_id": asset_id, "cve_id": cve_id}).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(result)))
+            self.send_header("Connection", "close")
             self.end_headers()
-            
-            # Execute TruConfirm exploit validation tool
-            result = call_mcp_tool("delegate_validation_workflow", {"asset_id": asset_id, "cve_id": cve_id})
-            self.wfile.write(result.encode("utf-8"))
+            self.wfile.write(result)
             return
             
         elif self.path == "/api/remediate":
@@ -228,17 +234,18 @@ class SecuritySentinelHTTPHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b"Missing asset_id or action_type parameters")
                 return
                 
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            
             # Execute TruRisk Eliminate remediation tool
             result = call_mcp_tool("orchestrate_remediation", {
                 "asset_id": asset_id,
                 "action_type": action_type,
                 "change_control_id": change_control_id
-            })
-            self.wfile.write(result.encode("utf-8"))
+            }).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(result)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(result)
             return
 
         self.send_response(404)
