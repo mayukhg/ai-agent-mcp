@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Sentinel - AI AppSec Dashboard</title>
+  <!-- Google Fonts for premium modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Premium Glassmorphic Header -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="pulse-icon"></span>
+      <h1>SECURITY SENTINEL</h1>
+      <span class="badge">AI AppSec Copilot</span>
+    </div>
+    <div class="system-status">
+      <span class="status-dot green"></span>
+      <span>ETM MCP LINK: ACTIVE</span>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="dashboard-container">
+    
+    <!-- Left Sidebar: Policy & Governance -->
+    <aside class="sidebar">
+      <div class="card glass">
+        <h2>🛡️ ETM Governance</h2>
+        <p class="section-desc">Policy limits parsed directly from <code>config://governance/autonomy-matrix</code></p>
+        
+        <div class="policy-item">
+          <span class="policy-label">Policy Name:</span>
+          <span id="gov-policy-name" class="policy-value font-highlight">Loading...</span>
+        </div>
+        <div class="policy-item">
+          <span class="policy-label">Autonomy Level:</span>
+          <span class="policy-value badge-warning">HITL Approval Required</span>
+        </div>
+        <div class="policy-item">
+          <span class="policy-label">Change Window:</span>
+          <span id="gov-change-window" class="policy-value font-success">Loading...</span>
+        </div>
+        
+        <hr class="card-divider">
+        
+        <h3>Asset Categories</h3>
+        <div class="category-list">
+          <div class="category-item">
+            <span class="cat-dot red"></span>
+            <span>High Risk: app-server-01</span>
+          </div>
+          <div class="category-item">
+            <span class="cat-dot yellow"></span>
+            <span>Standard: db-host-05</span>
+          </div>
+          <div class="category-item">
+            <span class="cat-dot green"></span>
+            <span>Non-Prod: dev-box-09</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card glass developer-notice">
+        <h3>💡 AppSec Co-Pilot Info</h3>
+        <p>In decentralized organizations, project teams own security. Security Sentinel abstracts tool complexity, running safe validations and low-overhead remediations with zero security knowledge required from you.</p>
+      </div>
+    </aside>
+
+    <!-- Center Content: Assets & Console -->
+    <section class="main-content">
+      
+      <!-- Telemetry Cards Grid -->
+      <div class="assets-grid-header">
+        <h2>🖥️ Digital Infrastructure Telemetry</h2>
+        <button id="btn-refresh" class="btn btn-secondary">🔄 Refresh Logs</button>
+      </div>
+      
+      <div class="assets-container">
+        <!-- Telemetry Cards will be injected dynamically here -->
+        <div id="assets-loading" class="card glass text-center">
+          <div class="spinner"></div>
+          <p>Connecting to Agent Val MCP Server telemetry logs...</p>
+        </div>
+      </div>
+
+      <!-- Real-Time AI Agent Console -->
+      <div class="console-section">
+        <div class="console-header">
+          <h3>💬 AI Agent Thought Stream & Tool Outputs</h3>
+          <span class="badge-console">LOGS: STDOUT</span>
+        </div>
+        <div id="console-logs" class="console-body">
+          <div class="log-line sys">[SYSTEM] Security Sentinel CLI Client initialized.</div>
+          <div class="log-line sys">[SYSTEM] Booting MCP Server (stdio transport)...</div>
+          <div class="log-line success">[MCP] Connection established. Discovered 3 resources, 2 tools, and 1 prompt.</div>
+          <div class="log-line info">[AI] Ready to analyze asset telemetry logs. Select an asset card above to begin ETM triage.</div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- HITL Approval Modal (Pre-Flight Blast Radius Assessment) -->
+  <div id="hitl-modal" class="modal-overlay hidden">
+    <div class="modal-container glass">
+      
+      <div class="modal-header">
+        <h2>⚠️ Human-in-the-Loop Approval Required</h2>
+        <button id="btn-close-modal" class="btn-close">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="validation-status-card">
+          <div class="status-badge-container">
+            <span class="status-badge verified">✔️ TruConfirm Exploit Verified</span>
+          </div>
+          <p><strong>TruConfirm</strong> successfully performed a safe execution check and confirmed active exploit path viability. <strong>Vulnerability is active and exploitable on this host.</strong></p>
+        </div>
+
+        <h3>🔍 Cryptographic Exploit Evidence</h3>
+        <pre id="exploit-evidence" class="evidence-box">Loading validation evidence...</pre>
+
+        <h3>📋 Pre-Flight Blast Radius Assessment</h3>
+        <div class="blast-radius-box">
+          <div class="blast-item">
+            <strong>Target Asset:</strong> <span id="modal-asset-id" class="font-highlight">app-server-01</span>
+          </div>
+          <div class="blast-item">
+            <strong>Active Threat:</strong> <span id="modal-cve-id" class="font-warning">CVE-2024-4577</span>
+          </div>
+          <div class="blast-item">
+            <strong>Qualys Agent Footprint:</strong> <span class="font-success">RAM &lt; 5MB, CPU &lt; 0.5%</span> (Zero performance impact to active connections)
+          </div>
+          <div class="blast-item">
+            <strong>SLA Downtime risk:</strong> <span class="font-success">None</span> (Zero-downtime hot-patch applied statefully)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="change-ticket-id"><strong>Change Control Ticket ID (Auditing Required):</strong></label>
+          <input type="text" id="change-ticket-id" value="CC-9942" placeholder="e.g., CC-1002" class="form-control">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-decline" class="btn btn-secondary">Decline & Quarantine</button>
+        <button id="btn-approve" class="btn btn-primary">Authorize Patch Execution</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
