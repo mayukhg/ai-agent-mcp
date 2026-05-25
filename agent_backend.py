@@ -248,6 +248,81 @@ class SecuritySentinelHTTPHandler(BaseHTTPRequestHandler):
             self.wfile.write(result)
             return
 
+        elif self.path == "/api/chat":
+            user_msg = body.get("message", "").strip().lower()
+            
+            reply = ""
+            evidence = None
+            trigger_approval = False
+            asset_id = "app-server-01"
+            cve_id = "CVE-2024-4577"
+            
+            if any(k in user_msg for k in ["telemetry", "log", "active", "cve", "vulnerab", "score"]):
+                # Query ETM Telemetry Resource
+                content_raw = call_mcp_read_resource(f"telemetry://active-session-logs/{asset_id}")
+                data = json.loads(content_raw)
+                primary = data["vulnerabilities"][0]
+                
+                reply = (
+                    f"I've read ETM active session telemetry for `telemetry://active-session-logs/{asset_id}`.<br><br>"
+                    f"• <strong>Host</strong>: {data['asset_name']} ({data['ip_address']})<br>"
+                    f"• <strong>Environment</strong>: {data['environment']}<br>"
+                    f"• <strong>TruRisk Score</strong>: {data['trurisk_score']} (Vulnerabilities count: {len(data['vulnerabilities'])})<br>"
+                    f"• <strong>Critical Exposure</strong>: {primary['cve_id']} (Severity: {primary['severity']}, Status: {primary['status']})<br><br>"
+                    f"Would you like me to trigger a safe exploit validation check via TruConfirm?"
+                )
+                
+            elif any(k in user_msg for k in ["validate", "check", "exploit", "truconfirm", "verify"]):
+                # Invoke TruConfirm Tool
+                result_raw = call_mcp_tool("delegate_validation_workflow", {"asset_id": asset_id, "cve_id": cve_id})
+                result = json.loads(result_raw)
+                
+                if result.get("status") == "EXPLOIT_VERIFIED":
+                    reply = (
+                        f"⚡ <strong>TruConfirm completed check for {cve_id}!</strong><br><br>"
+                        f"Verification outcome: <strong><code>EXPLOIT_VERIFIED</code></strong> (exploit proven viable).<br>"
+                        f"Vulnerability is active and exploitable on host {asset_id}.<br><br>"
+                        f"⚠️ <strong>Autonomy Guardrails Alert</strong>: Governance policy requires manual manager approval to execute the patch. "
+                        f"<strong>Opening the HITL approval modal now...</strong>"
+                    )
+                    evidence = result["evidence"]
+                    trigger_approval = True
+                else:
+                    reply = f"TruConfirm check completed. Status: {result.get('status')}. Exploit path not verified."
+                    
+            elif any(k in user_msg for k in ["patch", "remediate", "mitigate", "fix", "eliminate"]):
+                reply = (
+                    f"To remediate {cve_id} on {asset_id}, I require manual change ticket authorization.<br><br>"
+                    f"Please review the pre-flight blast radius assessment on the screen and enter your change ticket to trigger orchestrate_remediation."
+                )
+                trigger_approval = True
+                
+            else:
+                reply = (
+                    f"I'm the Security Sentinel AI AppSec Copilot.<br><br>"
+                    f"I can help you:<br>"
+                    f"1. Ingest telemetry logs (e.g., <em>\"check telemetry logs for app-server-01\"</em>)<br>"
+                    f"2. Run safe Exploit Verifications (e.g., <em>\"run TruConfirm validation check\"</em>)<br>"
+                    f"3. Trigger hot-patching (e.g., <em>\"patch app-server-01\"</em>)<br><br>"
+                    f"What would you like me to check?"
+                )
+                
+            response_payload = json.dumps({
+                "reply": reply,
+                "evidence": evidence,
+                "trigger_approval": trigger_approval,
+                "asset_id": asset_id,
+                "cve_id": cve_id
+            }, indent=2).encode("utf-8")
+            
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(response_payload)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(response_payload)
+            return
+
         self.send_response(404)
         self.end_headers()
 

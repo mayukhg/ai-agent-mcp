@@ -1,15 +1,35 @@
 /* ==============================================================================
-   Security Sentinel GUI Event & Loop Controller
+   Security Sentinel GUI Event & Loop Controller (Selector & Chat Ready)
    ============================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Elements
+  // Mode Selection Elements
+  const landingSplash = document.getElementById("landing-splash");
+  const choiceDashboard = document.getElementById("choice-dashboard");
+  const choiceChat = document.getElementById("choice-chat");
+  const btnToggleInterface = document.getElementById("btn-toggle-interface");
+  const activeModeBadge = document.getElementById("active-mode-badge");
+  const headerStatusPulse = document.getElementById("header-status-pulse");
+  
+  // Viewports
+  const dashboardViewport = document.getElementById("dashboard-viewport");
+  const chatViewport = document.getElementById("chat-viewport");
+
+  // Core ETM Elements
   const govPolicyName = document.getElementById("gov-policy-name");
   const govChangeWindow = document.getElementById("gov-change-window");
   const assetsContainer = document.getElementById("assets-container");
   const consoleLogs = document.getElementById("console-logs");
   const btnRefresh = document.getElementById("btn-refresh");
   
+  // Conversational Chat Elements
+  const chatMessagesContainer = document.getElementById("chat-messages-container");
+  const chatTypingIndicator = document.getElementById("chat-typing-indicator");
+  const chatInputForm = document.getElementById("chat-input-form");
+  const chatMessageInput = document.getElementById("chat-message-input");
+  const chatPostureList = document.getElementById("chat-posture-list");
+  const suggestButtons = document.querySelectorAll(".btn-suggest");
+
   // Modal Elements
   const hitlModal = document.getElementById("hitl-modal");
   const modalAssetId = document.getElementById("modal-asset-id");
@@ -24,6 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let assetsData = {};
   let selectedAssetId = "app-server-01"; // Default focus
   let currentValidatingCve = "CVE-2024-4577";
+  let activeAgentMode = ""; // 'dashboard' or 'chat'
 
   // Helpers
   const addLog = (message, type = "info") => {
@@ -35,7 +56,48 @@ document.addEventListener("DOMContentLoaded", () => {
     consoleLogs.scrollTop = consoleLogs.scrollHeight;
   };
 
-  // 1. Fetch Governance Matrix
+  // ------------------------------------------------------------------------------
+  // 1. Selector Landing Page & Switching Controller
+  // ------------------------------------------------------------------------------
+
+  const selectAgentMode = (mode) => {
+    activeAgentMode = mode;
+    landingSplash.classList.add("hidden");
+    addLog(`Agent mode selected: ${mode.toUpperCase()}`, "sys");
+
+    if (mode === "dashboard") {
+      dashboardViewport.classList.remove("hidden");
+      chatViewport.classList.add("hidden");
+      activeModeBadge.textContent = "Visual Dashboard Grid";
+      activeModeBadge.style.borderColor = "#6366f1";
+      headerStatusPulse.style.backgroundColor = "#6366f1";
+    } else {
+      chatViewport.classList.remove("hidden");
+      dashboardViewport.classList.add("hidden");
+      activeModeBadge.textContent = "Conversational Chat";
+      activeModeBadge.style.borderColor = "#06b6d4";
+      headerStatusPulse.style.backgroundColor = "#06b6d4";
+      addLog("[AI Sentinel] Conversational chat session started. Ready for your plain language ETM commands.", "info");
+      
+      // Auto scroll chat to bottom
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    }
+    
+    // Ingest latest state
+    fetchAssets(true);
+  };
+
+  choiceDashboard.addEventListener("click", () => selectAgentMode("dashboard"));
+  choiceChat.addEventListener("click", () => selectAgentMode("chat"));
+  
+  btnToggleInterface.addEventListener("click", () => {
+    landingSplash.classList.remove("hidden");
+    addLog("Returning to Agent Selection Landing Portal...", "sys");
+  });
+
+  // ------------------------------------------------------------------------------
+  // 2. Fetch Governance Matrix
+  // ------------------------------------------------------------------------------
   const fetchGovernance = async () => {
     try {
       addLog("Querying config://governance/autonomy-matrix...", "sys");
@@ -53,7 +115,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // 2. Fetch Assets Telemetry
+  // ------------------------------------------------------------------------------
+  // 3. Fetch ETM Telemetry (State Synchronized)
+  // ------------------------------------------------------------------------------
   const fetchAssets = async (logSilence = false) => {
     try {
       if (!logSilence) addLog("Fetching active session telemetry from ETM...", "sys");
@@ -62,14 +126,20 @@ document.addEventListener("DOMContentLoaded", () => {
       assetsData = await res.json();
       
       renderAssetsGrid();
+      renderCompactPostureSidebar();
       if (!logSilence) addLog(`Telemetry fetched for ${Object.keys(assetsData).length} active hosts.`, "success");
     } catch (err) {
       addLog(`Failed to query telemetry logs: ${err.message}`, "danger");
     }
   };
 
-  // 3. Render Asset Grid
+  // ------------------------------------------------------------------------------
+  // 4. Render Layout Viewports
+  // ------------------------------------------------------------------------------
+
+  // Viewport A: Telemetry Grid Cards
   const renderAssetsGrid = () => {
+    if (!assetsContainer) return;
     assetsContainer.innerHTML = "";
     
     Object.keys(assetsData).forEach(id => {
@@ -81,7 +151,6 @@ document.addEventListener("DOMContentLoaded", () => {
       card.className = `card glass asset-card ${isSelected ? 'active-selection' : ''}`;
       card.dataset.id = id;
       
-      // Classify risk badge color
       let riskClass = "success";
       if (asset.trurisk_score > 80) riskClass = "danger";
       else if (asset.trurisk_score > 40) riskClass = "warning";
@@ -109,7 +178,6 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      // Select Card Focus
       card.addEventListener("click", (e) => {
         if (e.target.tagName !== "BUTTON") {
           selectedAssetId = id;
@@ -119,7 +187,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Actions bind
       card.querySelector(".btn-check-telemetry").addEventListener("click", () => {
         selectedAssetId = id;
         checkTelemetry(id);
@@ -138,6 +205,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  // Viewport B: Chat Posture Sidebar (Compact List)
+  const renderCompactPostureSidebar = () => {
+    if (!chatPostureList) return;
+    chatPostureList.innerHTML = "";
+    
+    Object.keys(assetsData).forEach(id => {
+      const asset = assetsData[id];
+      const primaryCve = asset.vulnerabilities[0];
+      
+      let riskClass = "success";
+      if (asset.trurisk_score > 80) riskClass = "danger";
+      else if (asset.trurisk_score > 40) riskClass = "warning";
+
+      const item = document.createElement("div");
+      item.className = "posture-item";
+      item.innerHTML = `
+        <div class="posture-meta">
+          <h5>${asset.asset_name}</h5>
+          <span>CVE: ${primaryCve.cve_id} (${primaryCve.status})</span>
+        </div>
+        <span class="posture-score ${riskClass}">${asset.trurisk_score}</span>
+      `;
+      chatPostureList.appendChild(item);
+    });
+  };
+
   const getStatusColorClass = (status) => {
     switch (status) {
       case "Active": return "font-danger";
@@ -147,7 +240,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // 4. Action: Check Telemetry
+  // ------------------------------------------------------------------------------
+  // 5. Visual Dashboard Actions
+  // ------------------------------------------------------------------------------
+
   const checkTelemetry = async (assetId) => {
     addLog(`Ingesting resource logs telemetry://active-session-logs/${assetId}...`, "sys");
     const asset = assetsData[assetId];
@@ -160,12 +256,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // 5. Action: Validate Vulnerability (TruConfirm tool)
   const validateVulnerability = async (assetId, cveId, cardElement) => {
     addLog(`Initiating TruConfirm exploit validation for ${cveId} on ${assetId}...`, "sys");
     addLog(`[AI Agent] Connecting via MCP Client. Spawning delegate_validation_workflow(asset_id="${assetId}", cve_id="${cveId}")...`, "info");
     
-    // UI Loading state in button
     const btn = cardElement.querySelector(".btn-validate-exploit");
     const originalText = btn.innerHTML;
     btn.innerHTML = `<span class="spinner-inline"></span> Executing Check...`;
@@ -184,15 +278,12 @@ document.addEventListener("DOMContentLoaded", () => {
       addLog(`TruConfirm Completed! Status: ${result.status}`, "success");
       addLog(`[MCP Output] Exploit verification evidence trail:`, "success");
       
-      // Print first few evidence lines
       result.evidence.split("\n").forEach(line => {
         addLog(`  ${line}`, "success");
       });
 
-      // Stateful reload assets
       await fetchAssets(true);
 
-      // Open Gating Modal
       setTimeout(() => {
         openHITLModal(assetId, cveId, result.evidence);
       }, 1000);
@@ -205,14 +296,115 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // 6. HITL Modal Gating
+  // ------------------------------------------------------------------------------
+  // 6. Conversational Chat Engine (API REST integrations)
+  // ------------------------------------------------------------------------------
+
+  // Render Bot Response bubble
+  const appendMessage = (sender, text, type = "bot", isPreformatted = false) => {
+    const bubble = document.createElement("div");
+    bubble.className = `message-bubble ${type}`;
+    
+    const header = document.createElement("div");
+    header.className = "message-sender";
+    header.textContent = sender;
+    
+    const messageText = document.createElement("div");
+    messageText.className = "message-text";
+    
+    if (isPreformatted) {
+      const pre = document.createElement("pre");
+      pre.textContent = text;
+      messageText.appendChild(pre);
+    } else {
+      // Basic formatting of newlines and bold markers
+      let formatted = text.replace(/\n/g, "<br>");
+      formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      formatted = formatted.replace(/`(.*?)`/g, "<code>$1</code>");
+      messageText.innerHTML = formatted;
+    }
+    
+    bubble.appendChild(header);
+    bubble.appendChild(messageText);
+    
+    chatMessagesContainer.appendChild(bubble);
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+  };
+
+  // Submit chat query
+  const submitChatQuery = async (queryText) => {
+    if (!queryText) return;
+    
+    appendMessage("You", queryText, "user");
+    chatMessageInput.value = "";
+    
+    // Show Typing indicator
+    chatTypingIndicator.classList.remove("hidden");
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+
+    try {
+      addLog(`Sending conversational query to Sentinel Agent...`, "sys");
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: queryText })
+      });
+      
+      if (!res.ok) throw new Error("Agent response error");
+      const data = await res.json();
+      
+      // Hide typing
+      chatTypingIndicator.classList.add("hidden");
+      
+      // Append bot chat reply
+      appendMessage("Security Sentinel [AI]", data.reply, "bot");
+      
+      // If the backend triggered ETM tools, let's output evidence preformatted!
+      if (data.evidence) {
+        appendMessage("TruConfirm [MCP Proof]", data.evidence, "bot", true);
+      }
+      
+      // If the backend processed an active remediation, pop open the HITL modal!
+      if (data.trigger_approval) {
+        selectedAssetId = data.asset_id;
+        currentValidatingCve = data.cve_id;
+        openHITLModal(data.asset_id, data.cve_id, data.evidence);
+      }
+
+      // Sync telemetry
+      await fetchAssets(true);
+
+    } catch (err) {
+      chatTypingIndicator.classList.add("hidden");
+      appendMessage("Security Sentinel [AI]", `Error: I encountered a connection issue. ${err.message}`, "bot");
+      addLog(`Chat session endpoint failure: ${err.message}`, "danger");
+    }
+  };
+
+  chatInputForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const query = chatMessageInput.value.trim();
+    submitChatQuery(query);
+  });
+
+  // Suggested Prompts click binders
+  suggestButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      // Strip search/mitigation emojis and load query
+      const queryText = btn.textContent.replace(/^[^\w]*/, "").trim();
+      submitChatQuery(queryText);
+    });
+  });
+
+  // ------------------------------------------------------------------------------
+  // 7. Human-in-the-Loop Modal Gating
+  // ------------------------------------------------------------------------------
   const openHITLModal = (assetId, cveId, evidenceText) => {
     modalAssetId.textContent = assetId;
     modalCveId.textContent = cveId;
     exploitEvidence.textContent = evidenceText;
     
     addLog(`[AI Sentinel Gating] Autonomy safety matrix requires manual manager authorization to apply remediation patches. Rendering approval modal.`, "warning");
-    
     hitlModal.classList.remove("hidden");
   };
 
@@ -221,10 +413,8 @@ document.addEventListener("DOMContentLoaded", () => {
     addLog(`HITL approval modal dismissed.`, "info");
   };
 
-  // 7. Action: Remediate (TruRisk Eliminate / Cloud Agent)
   const executeRemediation = async () => {
     const assetId = modalAssetId.textContent;
-    const cveId = modalCveId.textContent;
     const ticketId = changeTicketId.value.trim() || "CC-9942";
 
     addLog(`[HITL Approved] Authorizing patch remediation. Change Control Ticket ID: ${ticketId}`, "success");
@@ -246,21 +436,27 @@ document.addEventListener("DOMContentLoaded", () => {
       addLog(`[MCP Output] TruRisk Eliminate completed! Status: ${report.status}`, "success");
       addLog(`[Qualys Cloud Agent Footprint] RAM overhead: ${report.audit_trail.agent_ram_overhead}, CPU utilization: ${report.audit_trail.agent_cpu_utilisation}`, "info");
       addLog(`[Risk Reduction Report] TruRisk decreased statefully from ${report.risk_impact.previous_trurisk_score} to ${report.risk_impact.current_trurisk_score} (Reduction of ${report.risk_impact.risk_reduction})`, "success");
-      addLog(`[Audit Log] Change control ticket #${ticketId} statefully verified, closed, and registered in centralized reporting log.`, "success");
 
-      // Reload state in dashboard
+      // Append confirmation bubble to chat if in chat mode
+      if (activeAgentMode === "chat") {
+        appendMessage("Security Sentinel [AI]", `Mitigation completed successfully!<br><br>• <strong>Asset</strong>: ${assetId}<br>• <strong>Action</strong>: Patch deployed via Cloud Agent<br>• <strong>TruRisk reduction</strong>: ${report.risk_impact.previous_trurisk_score} ➔ ${report.risk_impact.current_trurisk_score}<br>• <strong>Audit ticket</strong>: #${ticketId} closed successfully.`, "bot");
+      }
+
       await fetchAssets(true);
       closeHITLModal();
 
     } catch (err) {
       addLog(`Remediation execution failed: ${err.message}`, "danger");
+      if (activeAgentMode === "chat") {
+        appendMessage("Security Sentinel [AI]", `Error deploying patch: ${err.message}`, "bot");
+      }
     } finally {
       btnApprove.innerHTML = "Authorize Patch Execution";
       btnApprove.disabled = false;
     }
   };
 
-  // Event Listeners bind
+  // Event Bindings
   btnRefresh.addEventListener("click", () => fetchAssets());
   btnCloseModal.addEventListener("click", closeHITLModal);
   btnDecline.addEventListener("click", closeHITLModal);
@@ -269,7 +465,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize
   const init = async () => {
     await fetchGovernance();
-    await fetchAssets();
+    // Default load choice portal (doesn't fetch assets until a viewport is picked)
+    landingSplash.classList.remove("hidden");
   };
 
   init();

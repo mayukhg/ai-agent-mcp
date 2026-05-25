@@ -12,23 +12,51 @@
 </head>
 <body>
 
+  <!-- Landing Splash Screen: Agent Choice Selector -->
+  <div id="landing-splash" class="modal-overlay">
+    <div class="splash-container">
+      <div class="splash-header text-center">
+        <span class="pulse-icon"></span>
+        <h2>SECURITY SENTINEL</h2>
+        <p class="splash-subtitle">Qualys ETM AI-Agent Orchestrator Portal</p>
+      </div>
+      <div class="choice-cards-container">
+        <div id="choice-dashboard" class="choice-card glass text-center">
+          <div class="choice-icon">🖥️</div>
+          <h3>Visual Diagnostic Grid</h3>
+          <p>Real-time security telemetry cards, active vulnerability grids, and one-click execution dashboards.</p>
+          <button class="btn btn-primary btn-choice">Launch Dashboard</button>
+        </div>
+        <div id="choice-chat" class="choice-card glass text-center">
+          <div class="choice-icon">💬</div>
+          <h3>Conversational Chat</h3>
+          <p>Interact with your AppSec Copilot in natural language. Verify exploits and patch systems conversationally.</p>
+          <button class="btn btn-primary btn-choice">Launch Chat Assistant</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Premium Glassmorphic Header -->
   <header class="app-header">
     <div class="header-logo">
-      <span class="pulse-icon"></span>
+      <span id="header-status-pulse" class="pulse-icon"></span>
       <h1>SECURITY SENTINEL</h1>
-      <span class="badge">AI AppSec Copilot</span>
+      <span id="active-mode-badge" class="badge">AI AppSec Copilot</span>
     </div>
-    <div class="system-status">
-      <span class="status-dot green"></span>
-      <span>ETM MCP LINK: ACTIVE</span>
+    <div class="header-actions">
+      <button id="btn-toggle-interface" class="btn btn-secondary">🔄 Switch Agent Mode</button>
+      <div class="system-status" style="margin-left: 1rem; display: inline-flex;">
+        <span class="status-dot green"></span>
+        <span>ETM MCP LINK: ACTIVE</span>
+      </div>
     </div>
   </header>
 
   <!-- Main Grid Layout -->
   <main class="dashboard-container">
     
-    <!-- Left Sidebar: Policy & Governance -->
+    <!-- Left Sidebar: Policy & Governance (Persistent across both views) -->
     <aside class="sidebar">
       <div class="card glass">
         <h2>🛡️ ETM Governance</h2>
@@ -72,10 +100,10 @@
       </div>
     </aside>
 
-    <!-- Center Content: Assets & Console -->
-    <section class="main-content">
-      
-      <!-- Telemetry Cards Grid -->
+    <!-- Center Content Viewports (Toggled via JS) -->
+    
+    <!-- VIEWPORT 1: Visual Diagnostic Dashboard Grid -->
+    <section id="dashboard-viewport" class="main-content">
       <div class="assets-grid-header">
         <h2>🖥️ Digital Infrastructure Telemetry</h2>
         <button id="btn-refresh" class="btn btn-secondary">🔄 Refresh Logs</button>
@@ -102,8 +130,61 @@
           <div class="log-line info">[AI] Ready to analyze asset telemetry logs. Select an asset card above to begin ETM triage.</div>
         </div>
       </div>
-
     </section>
+
+    <!-- VIEWPORT 2: Conversational Chat Assistant Interface -->
+    <section id="chat-viewport" class="main-content hidden">
+      <div class="assets-grid-header">
+        <h2>💬 Conversational Security Sentinel</h2>
+        <span class="badge badge-chat">Model: Gemini 2.5 Flash</span>
+      </div>
+      
+      <div class="chat-grid-container">
+        <!-- Left Side: Chat Workspace -->
+        <div class="chat-card-container card glass">
+          <div id="chat-messages-container" class="chat-messages">
+            <!-- Initial Greeting from Sentinel AI -->
+            <div class="message-bubble bot">
+              <div class="message-sender">Security Sentinel [AI]</div>
+              <div class="message-text">Hello! I am your Qualys ETM Security Sentinel. I am connected directly to the Agent Val MCP Server.<br><br>I can query security telemetry, execute safe TruConfirm validations, and run Cloud Agent patch mitigations. How can I protect your application servers today?</div>
+            </div>
+          </div>
+          
+          <!-- Typing Indicator -->
+          <div id="chat-typing-indicator" class="typing-indicator hidden">
+            <span></span><span></span><span></span>
+          </div>
+
+          <!-- Suggested Quickprompts -->
+          <div class="chat-suggestions-container">
+            <span class="suggestions-label">Try asking:</span>
+            <div class="chat-suggestions">
+              <button class="btn btn-secondary btn-suggest">🔍 Check telemetry logs for app-server-01</button>
+              <button class="btn btn-secondary btn-suggest">⚡ Run exploit validation check on app-server-01</button>
+              <button class="btn btn-secondary btn-suggest">🛠️ Apply patch mitigation using CC-9942</button>
+            </div>
+          </div>
+
+          <!-- Message Input Bar -->
+          <form id="chat-input-form" class="chat-input-bar">
+            <input type="text" id="chat-message-input" autocomplete="off" placeholder="Ask Sentinel to check vulnerabilities, run TruConfirm, or patch hosts..." class="form-control chat-input">
+            <button type="submit" id="btn-chat-send" class="btn btn-primary">Send Message</button>
+          </form>
+        </div>
+
+        <!-- Right Side: Active Asset Posture Monitor (Dynamic Sidebar) -->
+        <div class="posture-sidebar">
+          <div class="card glass">
+            <h3>🖥️ Live Posture Monitor</h3>
+            <p class="section-desc">Active telemetry status updated dynamically by chat commands</p>
+            <div id="chat-posture-list" class="chat-posture-list">
+              <!-- Inline compact list of assets and scores -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- HITL Approval Modal (Pre-Flight Blast Radius Assessment) -->
