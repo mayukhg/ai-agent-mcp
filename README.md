@@ -4,6 +4,8 @@ An industry-standard **Model Context Protocol (MCP) Server** that exposes **Qual
 
 This repository implements **Horizon 1 (The Minimum Viable Orchestrator)** and features a fully persistent **Stateful In-Memory Sandbox** engine, enabling immediate demonstration of closed-loop vulnerability identification, exploit verification (TruConfirm), and remediation validation (TruRisk Eliminate).
 
+> 🛡️ **See it before you install anything.** Open **[`demo/security-sentinel-demo.html`](demo/security-sentinel-demo.html)** in any browser — no Python, no `pip install`, no MCP client. It's a pixel-faithful, fully self-contained recreation of the real dashboard and chat UI, with `delegate_validation_workflow` and `orchestrate_remediation` simulated client-side using the exact same odds and risk-score formula as `server.py`. Click through the whole validate → approve → remediate loop in under a minute. Details in [Try the Offline Demo](#-try-the-offline-demo) below.
+
 ---
 
 ## 🏗️ System Architecture & Workflow
@@ -76,6 +78,30 @@ The server registers three types of Model Context Protocol primitives with the c
 
 ### 3. MCP Prompts (Collaboration Templates)
 * **`prompt://pre-flight-blast-radius`**: Generates a pre-flight assessment prompt instructing the AI assistant to summarize the threat, evaluate governance guidelines, check the maintenance window, and request formal Engineering Manager approval in chat.
+
+---
+
+## 🖥️ Try the Offline Demo
+
+Before you clone, create a venv, and wire up Claude Desktop — **[`demo/security-sentinel-demo.html`](demo/security-sentinel-demo.html)** lets you click through the entire closed loop this server implements, right now, in a browser tab.
+
+```bash
+# no build, no install, no server — just open it
+open demo/security-sentinel-demo.html          # macOS
+# or: xdg-open demo/security-sentinel-demo.html # Linux
+# or: start demo/security-sentinel-demo.html    # Windows
+```
+
+It reproduces the real `agent_backend.py` + `static/` web GUI from this repo, screen for screen:
+
+- **Landing splash** — choose the Visual Diagnostic Grid or the Conversational Chat, exactly like the real app
+- **Telemetry cards** for `app-server-01`, `db-host-05`, and `dev-box-09`, seeded with the same TruRisk scores and CVEs as `server.py`'s `MOCK_ASSET_REGISTRY`
+- **Validate Exploit** — runs the same probability the real tool does (85% verified for Production hosts, 50% for Development), and shows the matching `TruConfirm` evidence template either way
+- **The HITL approval modal** — blast-radius assessment, change-ticket field, Approve/Decline — gated exactly like `pre_flight_blast_radius`
+- **Authorize Patch Execution** — recalculates TruRisk with the real formula (`max(15, score × 0.35)`) and reflects it live in both the dashboard and chat sidebar
+- A live **AI Agent Thought Stream** console logging every simulated `resources/read` and `tools/call`, in the same style as the real MCP traffic
+
+It's a client-side simulation, not a live MCP connection — for the real thing, follow **Getting Started** below and connect via `mcp dev server.py` or Claude Desktop.
 
 ---
 
